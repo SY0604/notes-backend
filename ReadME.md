@@ -1,4 +1,4 @@
-
+Since we had some issue with the configuration which I am currenttly working on to resolve, the browser cannot get access to the back-end server. For that reason in order to use the backend you can send requests via the terminal using the -k flag (curl -k -X POST/GET your_request)
 ---
 
 ### **README for Backend**
