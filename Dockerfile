@@ -4,8 +4,8 @@ FROM openjdk:21-jdk AS build
 # Set the working directory
 WORKDIR /app
 
-# Install necessary utilities (including xargs)
-RUN apt-get update && apt-get install -y findutils
+# Install necessary utilities (including xargs) using apk for Alpine-based images
+RUN apk add --no-cache findutils
 
 # Copy Gradle wrapper and project files
 COPY gradlew .
