@@ -1,41 +1,27 @@
-# ===========================
-# Stage 1: Build the Application
-# ===========================
-FROM gradle:8.2.1-jdk17 AS build
+# Use the official Gradle image compatible with Java 21
+FROM gradle:8.3-jdk21 AS build
 
-# Set the working directory inside the container
+# Set the working directory
 WORKDIR /app
 
-# Copy Gradle build files and wrapper scripts first
-COPY build.gradle settings.gradle gradlew ./
-COPY gradle ./gradle
-
-# Make Gradle Wrapper executable (if using wrapper)
-RUN chmod +x gradlew
-
-# Download dependencies without building the entire project to leverage Docker caching
-RUN ./gradlew build -x test --no-daemon || return 0
-
-# Now copy the source code
-COPY src ./src
+# Copy Gradle files and source code
+COPY build.gradle settings.gradle /app/
+COPY src /app/src
 
 # Build the application
-RUN ./gradlew bootJar -x test --no-daemon
+RUN gradle bootJar -x test --no-daemon
 
-# ===========================
-# Stage 2: Create the Runtime Image
-# ===========================
-FROM openjdk:17.0.1-jdk-slim
+# Use the official Java 21 runtime for the final image
+FROM eclipse-temurin:21-jre
 
-# Set working directory
+# Set the working directory
 WORKDIR /app
 
-# Copy the Spring Boot JAR file from the build stage
-COPY --from=build /app/build/libs/*.jar demo.jar
+# Copy the built JAR file from the builder stage
+COPY --from=build /app/build/libs/*.jar app.jar
 
 # Expose the application port
-# Adjust if your application runs on a different port (e.g., if server.port=8000, then EXPOSE 8000)
 EXPOSE 8080
 
-# Set the entrypoint to run the JAR
-ENTRYPOINT ["java", "-jar", "demo.jar"]
+# Run the application
+ENTRYPOINT ["java", "-jar", "app.jar"]
