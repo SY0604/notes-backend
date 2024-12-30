@@ -1,36 +1,41 @@
-# Use the official Java 21 JDK as the base image
-FROM eclipse-temurin:21-jdk AS build
+# ===========================
+# Stage 1: Build the Application
+# ===========================
+FROM gradle:8.2.1-jdk17 AS build
 
-# Install required tools and Gradle
-RUN apt-get update && apt-get install -y wget unzip && \
-    wget https://services.gradle.org/distributions/gradle-8.3-bin.zip && \
-    unzip gradle-8.3-bin.zip -d /opt/ && \
-    ln -s /opt/gradle-8.3/bin/gradle /usr/bin/gradle
-
-# Verify Gradle installation
-RUN gradle --version
-
-# Set the working directory
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy Gradle files and source code
-COPY build.gradle settings.gradle /app/
-COPY src /app/src
+# Copy Gradle build files and wrapper scripts first
+COPY build.gradle settings.gradle gradlew ./
+COPY gradle ./gradle
+
+# Make Gradle Wrapper executable (if using wrapper)
+RUN chmod +x gradlew
+
+# Download dependencies without building the entire project to leverage Docker caching
+RUN ./gradlew build -x test --no-daemon || return 0
+
+# Now copy the source code
+COPY src ./src
 
 # Build the application
-RUN gradle bootJar -x test --no-daemon
+RUN ./gradlew bootJar -x test --no-daemon
 
-# Use the official Java 21 runtime for the final image
-FROM eclipse-temurin:21-jre
+# ===========================
+# Stage 2: Create the Runtime Image
+# ===========================
+FROM openjdk:17.0.1-jdk-slim
 
-# Set the working directory
+# Set working directory
 WORKDIR /app
 
-# Copy the built JAR file from the builder stage
-COPY --from=build /app/build/libs/*.jar app.jar
+# Copy the Spring Boot JAR file from the build stage
+COPY --from=build /app/build/libs/*.jar demo.jar
 
 # Expose the application port
+# Adjust if your application runs on a different port (e.g., if server.port=8000, then EXPOSE 8000)
 EXPOSE 8080
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Set the entrypoint to run the JAR
+ENTRYPOINT ["java", "-jar", "demo.jar"]
