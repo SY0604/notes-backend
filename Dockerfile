@@ -4,6 +4,9 @@ FROM openjdk:21-jdk AS build
 # Set the working directory
 WORKDIR /app
 
+# Install necessary utilities (including xargs)
+RUN apt-get update && apt-get install -y findutils
+
 # Copy Gradle wrapper and project files
 COPY gradlew .
 COPY gradle gradle
@@ -15,7 +18,7 @@ COPY src src
 RUN chmod +x gradlew
 
 # (Optional) Cache dependencies
-RUN ./gradlew dependencies --no-daemon
+RUN ./gradlew dependencies --no-daemon --warning-mode all
 
 # Build the application
 RUN ./gradlew bootJar -x test --no-daemon --warning-mode all
