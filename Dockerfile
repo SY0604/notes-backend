@@ -1,5 +1,14 @@
-# Use the official Gradle image compatible with Java 21
-FROM gradle:8.3-jdk21 AS build
+# Use the official Java 21 JDK as the base image
+FROM eclipse-temurin:21-jdk AS build
+
+# Install required tools and Gradle
+RUN apt-get update && apt-get install -y wget unzip && \
+    wget https://services.gradle.org/distributions/gradle-8.3-bin.zip && \
+    unzip gradle-8.3-bin.zip -d /opt/ && \
+    ln -s /opt/gradle-8.3/bin/gradle /usr/bin/gradle
+
+# Verify Gradle installation
+RUN gradle --version
 
 # Set the working directory
 WORKDIR /app
